@@ -30,6 +30,13 @@
     }
 }
 
+- (void) setFilterNearest: (BOOL)filterNearest {
+    _filterNearest = filterNearest;
+    if (filterNearest) {
+        self.layer.magnificationFilter = kCAFilterNearest;
+    }
+}
+
 - (void) setOnFastImageLoadEnd: (RCTDirectEventBlock)onFastImageLoadEnd {
     _onFastImageLoadEnd = onFastImageLoadEnd;
     if (self.hasCompleted) {

@@ -24,6 +24,7 @@ import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.facebook.react.views.imagehelper.ResourceDrawableIdHelper;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -66,6 +67,10 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
         view.setDefaultSource(
                 ResourceDrawableIdHelper.getInstance()
                         .getResourceDrawable(view.getContext(), source));
+    }
+    @ReactProp(name = "filterNearest")
+    public void setFilterNearest(FastImageViewWithUrl view, @Nullable Boolean isNearest) {
+        view.setFilterNearest(isNearest);
     }
 
     @ReactProp(name = "tintColor", customType = "Color")

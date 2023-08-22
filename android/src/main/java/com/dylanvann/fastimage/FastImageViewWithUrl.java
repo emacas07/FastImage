@@ -4,15 +4,23 @@ import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_ERROR_EV
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageView;
 
 import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.model.GlideUrl;
+import com.bumptech.glide.load.resource.gif.GifDrawable;
 import com.bumptech.glide.request.Request;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
+
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
@@ -30,11 +38,12 @@ class FastImageViewWithUrl extends AppCompatImageView {
     private boolean mNeedsReload = false;
     private ReadableMap mSource = null;
     private Drawable mDefaultSource = null;
-
     public GlideUrl glideUrl;
+    private Boolean isNearestFilter=false;
 
     public FastImageViewWithUrl(Context context) {
         super(context);
+
     }
 
     public void setSource(@Nullable ReadableMap source) {
@@ -42,9 +51,15 @@ class FastImageViewWithUrl extends AppCompatImageView {
         mSource = source;
     }
 
+
     public void setDefaultSource(@Nullable Drawable source) {
         mNeedsReload = true;
         mDefaultSource = source;
+    }
+
+    public void setFilterNearest(Boolean isNearest) {
+        isNearestFilter = isNearest;
+
     }
 
     private boolean isNullOrEmpty(final String url) {
@@ -130,7 +145,7 @@ class FastImageViewWithUrl extends AppCompatImageView {
         }
 
         if (requestManager != null) {
-            RequestBuilder<Drawable> builder =
+            RequestBuilder<Drawable>  builder =
                     requestManager
                             // This will make this work for remote and local images. e.g.
                             //    - file:///
@@ -141,13 +156,51 @@ class FastImageViewWithUrl extends AppCompatImageView {
                             .load(imageSource == null ? null : imageSource.getSourceForLoad())
                             .apply(FastImageViewConverter
                                     .getOptions(context, imageSource, mSource)
-                                    .placeholder(mDefaultSource) // show until loaded
-                                    .fallback(mDefaultSource)); // null will not be treated as error
+                                    .placeholder(mDefaultSource)
+                                    .fallback(mDefaultSource)
+                            );
 
-            if (key != null)
+            if (key != null) {
                 builder.listener(new FastImageRequestListener(key));
-
-            builder.into(this);
+            }
+            if(isNearestFilter) {
+                if(imageSource.getSource().toLowerCase().contains("gif")) {
+                    builder.into(this);
+                } else {
+                    builder.into(new CustomTarget<Drawable>() {
+                        @Override
+                        public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
+                            if(resource!=null) {
+                                try {
+                                    BitmapDrawable drawable = (BitmapDrawable) resource;
+                                    drawable.setFilterBitmap(false);
+                                    drawable.setAntiAlias(false);
+                                    setImageDrawable(drawable);
+                                } catch (Exception e) {
+                                    Log.i("BitmapDrawable",e.getMessage());
+                                    try {
+                                        GifDrawable drawable = (GifDrawable) resource;
+                                        Bitmap bitmap = drawable.getFirstFrame();
+                                        BitmapDrawable bitmapDrawable  = new BitmapDrawable(getResources(), bitmap);
+                                        bitmapDrawable.setFilterBitmap(false);
+                                        bitmapDrawable.setAntiAlias(false);
+                                        setImageDrawable(bitmapDrawable);
+                                    } catch (Exception e2) {
+                                        Log.i("GifDrawable",e2.getMessage());
+                                    }
+                                }
+                            } else {
+                                Log.i("Drawable","NULL");
+                            }
+                        }
+                        @Override
+                        public void onLoadCleared(@Nullable Drawable placeholder) {
+                        }
+                    });
+                }
+            } else {
+                builder.into(this);
+            }
         }
     }
 
